@@ -1,0 +1,6 @@
+= ScalAsciiDoc
+
+A parser implementation for http://asciidoc.org[AsciiDoc],
+inspired by http://asciidoctor.org[Asciidoctor].
+
+Currently, this is simply an experiment on Scala Parser Combinators and in this form not much of any use for anyone.
