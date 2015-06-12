@@ -11,14 +11,9 @@ object Grammar extends RegexParsers {
 
   override val skipWhitespace = false
 
-  final val BLANKS = "[ \t]"
-  final val WORD_CLASS = "a-zA-Z0-9_"
-  final val ALNUM = "a-zA-Z0-9"
-  final val ALPHA = "a-zA-Z"
-
   def document: Parser[Document] =
-    (header <~ "[\\t\\n ]*".r).? ~
-      (attribute <~ "\n" <~ "[\\t\\n ]*".r).* ~
+    (header <~ eol).? ~
+      (attribute <~ "\n" <~ """[\t\n ]*""".r).* ~
       content ^^ {
       case h ~ a ~ b ⇒
         Document(
@@ -34,7 +29,7 @@ object Grammar extends RegexParsers {
     case docTitle ~ Some(authors ~ revision) ⇒ Header(docTitle, authors, revision)
   }
 
-  def authorLine = "^".r ~> author ~ ((s"$BLANKS*;$BLANKS*".r ~> author) *) <~ ("\n" | "$".r) ^^ {
+  def authorLine = "^".r ~> author ~ (("[ \t]*;[ \t]*".r ~> author) *) <~ ("\n" | "$".r) ^^ {
     case author ~ authors ⇒ author :: authors
   }
 
@@ -57,7 +52,7 @@ object Grammar extends RegexParsers {
     case rev ~ date ~ remark ⇒ RevisionInfo(rev, date, remark)
   }
 
-  def revision = s"[$ALNUM\\-_.]+".r
+  def revision = """[a-zA-Z0-9\-_.]+""".r
 
   def date = ("[0-9]{4}".r ~ ("-" ~> "[0-1][0-9]".r) ~ ("-" ~> "[0-3][0-9]".r)) ^^ {
     case y ~ m ~ d ⇒ s"$y-$m-$d"
@@ -69,7 +64,7 @@ object Grammar extends RegexParsers {
     case (firstName :: lastName :: Nil) ~ email ⇒ Author(firstName, lastName, email)
   }
 
-  def email = s"[$WORD_CLASS][$WORD_CLASS.%+-]*@[$ALNUM][$ALNUM.-]*\\.[$ALPHA]{2,4}\\b".r
+  def email = """[a-zA-Z0-9_][a-zA-Z0-9_.%+-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,4}\b""".r
 
   def attribute = (":" ~> (name ~ "!".?) <~ ":") ~ (" " ~> singleLine).? ^^ {
     case n ~ None ~ Some(t) if t.nonEmpty ⇒ Attribute(n, t)
@@ -110,22 +105,22 @@ object Grammar extends RegexParsers {
 
   def paragraph: Parser[Paragraph] = plainTextLine.+ ^^ { case s ⇒ Paragraph(s mkString "\n") }
 
-  def name: Parser[String] = "[a-zA-Z_\\-.]+".r
+  def name: Parser[String] = """[a-zA-Z_\-.]+""".r
 
-  def plainTextLine: Parser[String] = "[^= \\t\\n.][^\\n]*".r <~ eol ^^ (_.trim)
+  def plainTextLine: Parser[String] = """[^= \t\n.][^\n]*""".r <~ eol ^^ (_.trim)
 
-  def singleLine: Parser[String] = "[^\\n]*".r ^^ (_.trim)
+  def singleLine: Parser[String] = """[^\n]*""".r ^^ (_.trim)
 
   /**
    * End of line
    *
    * a newline character with any number of trailing tabs or spaces
    */
-  def eol: Parser[String] = "\\n[\\t ]*".r
+  def eol: Parser[String] = """\n[\t ]*""".r
 
-  def ws = s"$BLANKS*".r
+  def ws = "[ \t]*".r
 
-  def blank: Parser[String] = s"$BLANKS+".r ^^ (s ⇒ " ")
+  def blank: Parser[String] = "[ \t]+".r ^^ (s ⇒ " ")
 
   private[this] def areOfAlmostSameLength(a: String, b: String): Boolean =
     a.length == b.length ||
