@@ -7,9 +7,4 @@ import scala.language.implicitConversions
  */
 package object scalasciidoc {
 
-  def parseTo[T](parser: Parser[T], s: String): T = parse(parser, s) match {
-    case Success(parsedObject, _) ⇒ parsedObject
-    case error ⇒ throw new IllegalArgumentException(error.toString)
-  }
-
 }

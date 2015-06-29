@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.parboiled2.ParseError
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
+import sun.swing.SwingUtilities2.Section
 
 import scala.language.implicitConversions
 import scala.util.Failure
@@ -93,23 +94,23 @@ class AsciidocParserSpec extends PropSpec with PropertyChecks with Matchers with
   }
 
   property("section title level 1") {
-    "== Text".Section1.run().get shouldEqual TitleNode("Text", 1)
+    "== Text".SectionTitle1.run().get shouldEqual TitleNode("Text", 1)
   }
 
   property("section title level 2") {
-    "=== Text".Section2.run().get shouldEqual TitleNode("Text", 2)
+    "=== Text".SectionTitle2.run().get shouldEqual TitleNode("Text", 2)
   }
 
   property("section title level 3") {
-    "==== Text".Section3.run().get shouldEqual TitleNode("Text", 3)
+    "==== Text".SectionTitle3.run().get shouldEqual TitleNode("Text", 3)
   }
 
   property("section title level 4") {
-    "===== Text".Section4.run().get shouldEqual TitleNode("Text", 4)
+    "===== Text".SectionTitle4.run().get shouldEqual TitleNode("Text", 4)
   }
 
   property("section title level 5") {
-    "====== Text".Section5.run().get shouldEqual TitleNode("Text", 5)
+    "====== Text".SectionTitle5.run().get shouldEqual TitleNode("Text", 5)
   }
 
   property("revision Maven-style") {
@@ -204,12 +205,8 @@ class AsciidocParserSpec extends PropSpec with PropertyChecks with Matchers with
         | """.stripMargin
     document.Section.run().get shouldEqual SectionNode(
       TitleNode("Text", 1),
-      Seq(
-        ParagraphNode(
-          title = None,
-          text = "a"
-        )
-      ))
+      Seq(ParagraphNode(title = None, text = "a")),
+      Seq())
   }
 
   property("level 2 with two paragraphs") {
@@ -224,7 +221,8 @@ class AsciidocParserSpec extends PropSpec with PropertyChecks with Matchers with
       TitleNode("Text", 2),
       Seq(
         ParagraphNode(title = None, text = "a"),
-        ParagraphNode(title = None, text = "b")))
+        ParagraphNode(title = None, text = "b")),
+      Seq())
   }
 
   property("level 3 with a titled paragraph") {
@@ -240,7 +238,8 @@ class AsciidocParserSpec extends PropSpec with PropertyChecks with Matchers with
       TitleNode("Text", 3),
       Seq(
         ParagraphNode(title = None, text = "a"),
-        ParagraphNode(Some("titled"), "paragraph")))
+        ParagraphNode(Some("titled"), "paragraph")),
+      Seq())
   }
 
   property("paragraph with two lines") {
@@ -304,9 +303,71 @@ class AsciidocParserSpec extends PropSpec with PropertyChecks with Matchers with
         authors = Seq(),
         revision = None)),
       attributes = Seq(),
-      body = BodyNode(Seq(SectionNode(
-        title = TitleNode("Section", 1),
-        content = Seq(ParagraphNode(None, "This is a paragraph"))))))
+      body = BodyNode(Seq(
+        SectionNode(
+          title = TitleNode("Section", 1),
+          content = Seq(ParagraphNode(None, "This is a paragraph")),
+          Seq()
+        ))
+      )
+    )
+  }
+
+  property("Complete document with sections and subsections") {
+    import Implicits._
+
+    val document = fromURL(this.getClass.getResource("/document-with-sections.adoc")).getLines().mkString("\n")
+    document.Document.run().get shouldEqual DocumentNode(
+      header = Some(HeaderNode(
+        title = TitleNode("Title", 0),
+        authors = Seq(AuthorNode("author name", Some("email@somewhere.com"))),
+        revision = Some(RevisionInfoNode(Some("v1.0"), Some("2015-06-10"), Some("Remark"))))),
+      attributes = Seq(
+        "attr" → "Attribute value",
+        "bool" → true),
+      body = BodyNode(Seq(
+        SectionNode(
+          title = TitleNode("Section 1", 1),
+          content = Seq(
+            ParagraphNode(None, "Test1.1"),
+            ParagraphNode(Some("Titled"), "Test1.2"),
+            ParagraphNode(None, "Test1.3")
+          ),
+          Seq(
+            SectionNode(
+              title = TitleNode("Section 2", 2),
+              content = Seq(
+                ParagraphNode(None, "Test2.1"),
+                ParagraphNode(Some("Titled"), "Test2.2")),
+              Seq())
+          )
+        ))
+      )
+    )
+  }
+
+  property("A block macro") {
+    "name::target[]".BlockMacro.run().get shouldEqual BlockMacroNode("name", "target", "")
+  }
+
+  property("Section with child sections") {
+    val document = """== Level 1
+                     |Block
+                     |
+                     |=== Level 2
+                     |Block
+                   """.stripMargin
+
+    document.Section.run().get shouldEqual SectionNode(
+      title = TitleNode("Level 1", 1),
+      content = Seq(ParagraphNode(None, "Block")),
+      children = Seq(
+        SectionNode(TitleNode(
+          title = "Level 2", 2),
+          content = Seq(ParagraphNode(None, "Block")),
+          children = Seq())
+      )
+    )
   }
 
 }

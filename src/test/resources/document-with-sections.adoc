@@ -1,0 +1,20 @@
+= Title
+author name <email@somewhere.com>
+v1.0, 2015-06-10: Remark
+
+:attr: Attribute value
+:bool:
+
+== Section 1
+Test1.1
+
+.Titled
+Test1.2
+
+Test1.3
+
+=== Section 2
+Test2.1
+
+.Titled
+Test2.2

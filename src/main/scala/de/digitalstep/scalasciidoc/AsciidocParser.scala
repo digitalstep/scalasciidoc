@@ -28,9 +28,42 @@ case class TitleNode(title: String, level: Int) extends Node
 
 sealed trait ContentNode extends Node
 
-case class SectionNode(title: TitleNode, content: Seq[ParagraphNode]) extends ContentNode
+sealed trait BlockLike extends Node
 
-case class ParagraphNode(title: Option[String], text: String) extends ContentNode
+sealed trait BlockNode extends ContentNode with BlockLike {
+  val title: Option[String]
+}
+
+case class SectionNode(title: TitleNode, content: Seq[BlockNode], children: Seq[SectionNode]) extends ContentNode
+
+case class ParagraphNode(title: Option[String], text: String) extends BlockNode
+
+case class DelimitedBlockNode(title: Option[String], text: String) extends BlockNode
+
+case class ListNode(title: Option[String], listItems: Seq[ListItemNode], listType: ListType) extends BlockNode
+
+case class ListItemNode(title: Option[String], content: Seq[BlockNode]) extends BlockNode
+
+sealed trait ListType
+
+case object Starred extends ListType
+
+case object Dash extends ListType
+
+case class BlockMacroNode(name: String, target: String, attributes: String) extends BlockLike
+
+object Implicits {
+  implicit def stringTuple2AttributeNode(tuple: (String, String)): AttributeNode = {
+    val (name, value) = tuple
+    AttributeNode(name, StringValueNode(value))
+  }
+
+  implicit def boolTuple2AttributeNode(tuple: (String, Boolean)): AttributeNode = {
+    val (name, value) = tuple
+    AttributeNode(name, BooleanValueNode(value))
+  }
+}
+
 
 object AsciidocParser {
   def apply(input: ParserInput) = new AsciidocParser(input)
@@ -175,39 +208,68 @@ class AsciidocParser(val input: ParserInput) extends Parser {
     Section | Paragraph
   }
 
-  def Section = rule {
-    (Section5 | Section4 | Section3 | Section2 | Section1) ~ Paragraph.* ~> SectionNode
+  def Section: Rule1[SectionNode] = rule {
+    SectionTitle ~ SectionBody ~ Section.* ~> SectionNode
   }
 
-  def Section1 = rule {
+  def SectionTitle = rule {
+    SectionTitle5 | SectionTitle4 | SectionTitle3 | SectionTitle2 | SectionTitle1
+  }
+
+  def SectionTitle1 = rule {
     "== " ~ (ToEndOfLine ~> (TitleNode(_, 1)))
   }
 
-  def Section2 = rule {
+  def SectionTitle2 = rule {
     "=== " ~ (ToEndOfLine ~> (TitleNode(_, 2)))
   }
 
-  def Section3 = rule {
+  def SectionTitle3 = rule {
     "==== " ~ (ToEndOfLine ~> (TitleNode(_, 3)))
   }
 
-  def Section4 = rule {
+  def SectionTitle4 = rule {
     "===== " ~ (ToEndOfLine ~> (TitleNode(_, 4)))
   }
 
-  def Section5 = rule {
+  def SectionTitle5 = rule {
     "====== " ~ (ToEndOfLine ~> (TitleNode(_, 5)))
   }
 
-  def Paragraph: Rule1[ParagraphNode] = rule {
-    (ParagraphTitle.? ~ ParagraphText) ~> ParagraphNode ~ NewLine
+  def SectionBody = rule {
+    (!SectionTitle ~ Block).*
+    //    ((BlockTitle.? ~ Block) | BlockMacro).+
   }
 
-  def ParagraphTitle: Rule1[String] = rule {
-    "." ~ capture("titled") ~ NewLine
+  def BlockTitle = rule {
+    "." ~ capture((!NewLine ~ ANY).+) ~ NewLine
   }
 
-  def ParagraphText: Rule1[String] = rule {
+  def Block = rule {
+    Paragraph // | DelimittedBlock | List | Table
+  }
+
+  def BlockMacro = rule {
+    BlockMacroName ~ "::" ~ BlockMacroTarget ~ "[" ~ BlockMacroAttributes ~ "]" ~ NewLine ~> BlockMacroNode
+  }
+
+  def BlockMacroName = rule {
+    capture((!"::" ~ !NewLine ~ ANY).+)
+  }
+
+  def BlockMacroTarget = rule {
+    capture((!"[" ~ !NewLine ~ ANY).+)
+  }
+
+  def BlockMacroAttributes = rule {
+    capture((!"]" ~ !NewLine ~ ANY).*)
+  }
+
+  def Paragraph = rule {
+    (BlockTitle.? ~ ParagraphText) ~> ParagraphNode ~ NewLine
+  }
+
+  def ParagraphText = rule {
     ToEndOfLine.+ ~> ((x: Seq[String]) ⇒ x.mkString(" "))
   }
 
@@ -223,18 +285,4 @@ class AsciidocParser(val input: ParserInput) extends Parser {
     anyOf(" \n\r\t\f").+
   }
 
-}
-
-object Runner extends App {
-
-  private val input =
-    """= Document Title
-      |Ab C. Def <ab.c@Def.de>; Gh Ij
-      |
-      |== Section 1
-    """.stripMargin
-
-  val result = new AsciidocParser(input).InputText.run()
-
-  println(result)
 }
