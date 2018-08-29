@@ -1,5 +1,4 @@
-= ScalasciiDoc
-
+* Scalasciidoc
 A parser implementation for http://asciidoc.org[AsciiDoc],
 inspired by http://asciidoctor.org[Asciidoctor].
 
