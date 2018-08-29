@@ -1,6 +1,5 @@
 package de.digitalstep.scalasciidoc
 
-import com.typesafe.scalalogging.LazyLogging
 import org.parboiled2.ParseError
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Matchers, PropSpec}
@@ -13,7 +12,7 @@ import scala.io.Source.fromURL
 /**
  * @author gunnar
  */
-class AsciidocParserSpec extends PropSpec with PropertyChecks with Matchers with LazyLogging {
+class AsciidocParserSpec extends PropSpec with PropertyChecks with Matchers {
 
   implicit def string2Asciidoc(input: String): AsciidocParser = AsciidocParser(input)
 
