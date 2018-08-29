@@ -1,6 +1,6 @@
 * Scalasciidoc
-A parser implementation for http://asciidoc.org[AsciiDoc],
-inspired by http://asciidoctor.org[Asciidoctor].
+A parser implementation for [[http://asciidoc.org][AsciiDoc]],
+inspired by [[http://asciidoctor.org][Asciidoctor]].
 
-This is simply an experiment on the http://parboiled2.org[parboiled2] parser combinator library
+This is simply an experiment on the [[http://parboiled2.org][parboiled2]] parser combinator library
 and in its current state not much of any use for anyone.
